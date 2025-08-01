@@ -87,10 +87,11 @@ AI akan mampu mengintegrasikan informasi dari sensor lanjutan ke dalam proses pe
 ## 6. Rencana Masa Depan
 
 ### 6.1. Langkah-langkah Pengembangan Selanjutnya
-*   **Peningkatan Kemampuan Pengambilan Keputusan:** Mengembangkan AI untuk menangani skenario yang lebih kompleks, termasuk navigasi dalam kondisi cuaca ekstrem atau lingkungan yang sangat dinamis.
-*   **Antarmuka Pengguna (UI) dan Visualisasi:** Membuat antarmuka yang intuitif untuk pemantauan misi, visualisasi data, dan intervensi manual jika diperlukan.
-*   **Simulasi dan Pengujian Ekstensif:** Melakukan pengujian ekstensif dalam lingkungan simulasi yang realistis untuk memvalidasi kinerja dan keandalan sistem sebelum penyebaran fisik.
-*   **Integrasi Sensor Tambahan:** Menjelajahi integrasi sensor lain seperti sensor akustik pasif untuk deteksi kehidupan laut atau sensor magnetik untuk deteksi objek logam.
+Setelah MVP Integrasi Sensor Lanjutan ini berhasil diimplementasikan, langkah-langkah pengembangan berikutnya akan berfokus pada optimalisasi dan pemanfaatan penuh dari data sensor yang lebih kaya:
+*   **Pemanfaatan Data Sensor Lanjutan untuk Model AI:** Mengembangkan dan melatih model AI yang secara optimal memanfaatkan data point cloud 3D dari LIDAR dan data deret waktu dari sensor kimia untuk tugas-tugas seperti klasifikasi objek yang lebih akurat, deteksi anomali lingkungan yang lebih cepat, dan pemetaan lingkungan bawah air yang sangat detail.
+*   **Pengembangan Algoritma Navigasi Adaptif:** Mengembangkan algoritma navigasi yang dapat secara dinamis menyesuaikan rute dan perilaku kapal selam berdasarkan informasi real-time dari sensor lanjutan. Ini termasuk kemampuan untuk menghindari area dengan konsentrasi kimia berbahaya atau menavigasi melalui struktur bawah air yang sangat kompleks yang terdeteksi oleh LIDAR.
+*   **Visualisasi Data Multi-Sensor Terintegrasi:** Membuat sistem visualisasi yang canggih dan intuitif untuk menampilkan data dari semua sensor (sonar, citra, batimetri, LIDAR, kimia) secara terintegrasi. Ini akan memberikan operator pemahaman yang komprehensif tentang lingkungan bawah air dan kondisi misi.
+*   **Pengujian Lapangan dan Validasi Data:** Melakukan serangkaian pengujian di lingkungan bawah air yang terkontrol dan realistis untuk memvalidasi akurasi dan keandalan data yang dikumpulkan oleh sensor LIDAR dan kimia, serta kinerja AI dalam menggunakan data tersebut untuk pengambilan keputusan.
 
 ### 6.2. Visi Jangka Panjang
-Visi jangka panjang Project Nautilus adalah menjadi platform eksplorasi bawah laut otonom yang terdepan, mampu melakukan misi ilmiah, pemetaan sumber daya, dan pengawasan lingkungan di kedalaman yang belum terjamah. Sistem ini diharapkan dapat beroperasi secara mandiri selama berbulan-bulan, mengirimkan data berharga, dan membuka era baru dalam eksplorasi laut dalam.
+Visi jangka panjang Project Nautilus adalah menjadi platform eksplorasi bawah laut otonom yang terdepan, mampu melakukan misi ilmiah, pemetaan sumber daya, dan pengawasan lingkungan di kedalaman yang belum terjamah. Dengan fondasi integrasi sensor lanjutan yang kuat dari MVP ini, sistem akan terus berkembang untuk mendukung misi yang semakin kompleks dan otonom, mengirimkan data berharga, dan membuka era baru dalam eksplorasi laut dalam.
