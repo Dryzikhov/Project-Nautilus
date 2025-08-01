@@ -13,7 +13,7 @@ def run_mission():
     # 1. Initialization
     grid_size = (20, 20)
     navigator = Navigator(grid_size=grid_size)
-    ai_model = AIModel(threshold=0.98) # High threshold to make it rare
+    ai_model = AIModel(image_threshold=0.98) # High threshold to make it rare
     data_loader = DataLoader()
 
     # 2. Mission Setup
@@ -21,11 +21,11 @@ def run_mission():
     end_pos = (18, 18)
     # Generate some random obstacle clusters
     obstacles = set()
-    for _ in range(5): # Reduced from 15 to 5
+    for _ in range(5):
         obs_x, obs_y = random.randint(0, grid_size[0]-1), random.randint(0, grid_size[1]-1)
         if (obs_x, obs_y) != start_pos and (obs_x, obs_y) != end_pos:
-            for i in range(random.randint(1, 3)): # Reduced cluster size
-                for j in range(random.randint(1, 3)):
+            for i in range(random.randint(1, 2)):
+                for j in range(random.randint(1, 2)):
                     obstacles.add((obs_x+i, obs_y+j))
 
     print(f"Mission from {start_pos} to {end_pos}.")
@@ -43,33 +43,44 @@ def run_mission():
 
     # 4. Mission Execution Simulation
     print("\nExecuting mission...")
-    interesting_locations_found = []
+    mission_summary = {"interesting_locations": 0, "lidar_objects": 0, "chemical_anomalies": 0}
+
     for i, position in enumerate(route):
         print(f"Step {i+1}/{len(route)}: At position {position}")
 
-        # a. Obstacle Avoidance Simulation
+        # a. Load all sensor data
         sonar_data = data_loader.load_sonar_data()
-        avoidance_action = navigator.avoid_obstacle(sonar_data)
+        lidar_data = data_loader.load_lidar_data()
+        chemical_data = data_loader.load_chemical_data()
+        underwater_image = data_loader.load_underwater_image()
+
+        # b. Obstacle Avoidance
+        avoidance_action = navigator.avoid_obstacle(sonar_data, lidar_data)
         if avoidance_action != "Proceed":
-            print(f"  - Sonar detected potential obstacle (dist: {sonar_data['distance']:.1f}). Action: {avoidance_action}")
+            print(f"  - Obstacle detected! Sonar (dist: {sonar_data['distance']:.1f}), LIDAR (std: {np.std(lidar_data):.2f}). Action: {avoidance_action}")
         else:
             print("  - Path clear.")
 
-        # b. Interesting Location Identification Simulation
-        underwater_image = data_loader.load_underwater_image()
-        locations = ai_model.identify_interesting_locations(underwater_image)
-        if locations:
-            # For simulation, let's assume the location is at the current sub position
-            interesting_locations_found.append(position)
-            print(f"  - AI model identified an interesting feature at {position}!")
+        # c. Interesting Location Identification (Sensor Fusion)
+        findings = ai_model.identify_interesting_locations(underwater_image, lidar_data, chemical_data)
+
+        if findings["image_features"]:
+            mission_summary["interesting_locations"] += 1
+            print(f"  - AI found {len(findings['image_features'])} visual features.")
+        if findings["lidar_object_detected"]:
+            mission_summary["lidar_objects"] += 1
+            print("  - AI confirmed a dense object with LIDAR.")
+        if findings["chemical_anomalies"]:
+            mission_summary["chemical_anomalies"] += 1
+            print(f"  - AI detected chemical anomalies: {findings['chemical_anomalies']}")
 
     # 5. Mission Summary
     print("\nMission Complete.")
     print(f"Final position: {route[-1]}")
-    if interesting_locations_found:
-        print(f"Found {len(interesting_locations_found)} interesting locations at: {interesting_locations_found}")
-    else:
-        print("No interesting locations were found on this mission.")
+    print("Mission Summary:")
+    print(f"  - Interesting locations based on imagery: {mission_summary['interesting_locations']}")
+    print(f"  - Dense objects confirmed by LIDAR: {mission_summary['lidar_objects']}")
+    print(f"  - Chemical anomalies detected: {mission_summary['chemical_anomalies']}")
 
 
 if __name__ == "__main__":
