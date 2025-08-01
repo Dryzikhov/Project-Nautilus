@@ -1,22 +1,33 @@
 import unittest
+import numpy as np
 from nautilus.navigation.navigator import Navigator
 
 class TestNavigator(unittest.TestCase):
 
     def setUp(self):
         self.navigator = Navigator(grid_size=(10, 10))
+        self.sparse_lidar = np.array([[10, 20, 30], [-10, -20, -30], [5, -15, 25]]) # High std dev
+        self.dense_lidar = np.random.rand(10, 3) # Low std dev
 
     def test_avoid_obstacle_safe(self):
         sonar_data = {'distance': 50, 'angle': 30}
-        self.assertEqual(self.navigator.avoid_obstacle(sonar_data), "Proceed")
+        self.assertEqual(self.navigator.avoid_obstacle(sonar_data, self.sparse_lidar), "Proceed")
 
-    def test_avoid_obstacle_turn_left(self):
+    def test_avoid_obstacle_sonar_only_left(self):
         sonar_data = {'distance': 15, 'angle': 30}
-        self.assertEqual(self.navigator.avoid_obstacle(sonar_data), "Turn left")
+        self.assertEqual(self.navigator.avoid_obstacle(sonar_data, self.sparse_lidar), "Turn Left")
 
-    def test_avoid_obstacle_turn_right(self):
+    def test_avoid_obstacle_sonar_only_right(self):
         sonar_data = {'distance': 15, 'angle': -30}
-        self.assertEqual(self.navigator.avoid_obstacle(sonar_data), "Turn right")
+        self.assertEqual(self.navigator.avoid_obstacle(sonar_data, self.sparse_lidar), "Turn Right")
+
+    def test_avoid_obstacle_sonar_and_lidar_left(self):
+        sonar_data = {'distance': 15, 'angle': 30}
+        self.assertEqual(self.navigator.avoid_obstacle(sonar_data, self.dense_lidar), "Hard Turn Left")
+
+    def test_avoid_obstacle_sonar_and_lidar_right(self):
+        sonar_data = {'distance': 15, 'angle': -30}
+        self.assertEqual(self.navigator.avoid_obstacle(sonar_data, self.dense_lidar), "Hard Turn Right")
 
     def test_optimize_route_simple(self):
         start = (0, 0)
