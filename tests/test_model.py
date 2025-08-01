@@ -5,70 +5,76 @@ from nautilus.ml.model import AIModel
 class TestAIModel(unittest.TestCase):
 
     def setUp(self):
-        self.model = AIModel(image_threshold=0.8, lidar_threshold=2.0)
-        # Dummy data for tests
-        self.normal_image = np.zeros((5, 5))
-        self.interesting_image = np.zeros((5, 5))
-        self.interesting_image[2, 2] = 0.9
+        """Set up mock data for testing."""
+        self.clear_model = AIModel(weather_condition='clear')
+        self.fog_model = AIModel(weather_condition='fog')
+        self.storm_model = AIModel(weather_condition='storm')
 
-        self.sparse_lidar = np.array([[10, 20, 30], [-10, -20, -30], [5, -15, 25]]) # High std dev
-        self.dense_lidar = np.random.rand(10, 3) # Low std dev
-
-        self.normal_chemical = {'ph': 8.0, 'salinity': 35, 'temperature': 15}
+        # Mock sensor data
+        self.high_risk_sonar = {'distance': 10, 'angle': 20}
+        self.low_risk_sonar = {'distance': 80, 'angle': 10}
+        self.dense_lidar = np.random.normal(loc=0, scale=1.0, size=(50, 3)) # Low std -> high risk/confidence
+        self.sparse_lidar = np.random.normal(loc=0, scale=5.0, size=(50, 3)) # High std -> low risk/confidence
+        self.interesting_image = np.array([[0.1, 0.9], [0.2, 0.3]])
+        self.boring_image = np.zeros((2, 2))
         self.anomalous_chemical = {'ph': 6.0, 'salinity': 45, 'temperature': 25}
+        self.normal_chemical = {'ph': 8.0, 'salinity': 35, 'temperature': 15}
 
-    def test_analyze_lidar_data_dense(self):
-        self.assertTrue(self.model.analyze_lidar_data(self.dense_lidar))
+    def test_weight_adjustment(self):
+        """Test if sensor weights are adjusted correctly for weather."""
+        # In fog, lidar and image weights for discovery should be lower
+        self.assertLess(self.fog_model.discovery_sensor_weights['lidar'], self.clear_model.discovery_sensor_weights['lidar'])
+        self.assertLess(self.fog_model.discovery_sensor_weights['image'], self.clear_model.discovery_sensor_weights['image'])
 
-    def test_analyze_lidar_data_sparse(self):
-        self.assertFalse(self.model.analyze_lidar_data(self.sparse_lidar))
+        # In a storm, chemical weights for discovery should be lower
+        self.assertLess(self.storm_model.discovery_sensor_weights['chemical'], self.clear_model.discovery_sensor_weights['chemical'])
 
-    def test_analyze_chemical_data_normal(self):
-        anomalies = self.model.analyze_chemical_data(self.normal_chemical)
-        self.assertEqual(len(anomalies), 0)
+        # In fog, lidar weight for obstacles should be lower and sonar higher
+        self.assertLess(self.fog_model.obstacle_sensor_weights['lidar'], self.clear_model.obstacle_sensor_weights['lidar'])
+        self.assertGreater(self.fog_model.obstacle_sensor_weights['sonar'], self.clear_model.obstacle_sensor_weights['sonar'])
 
-    def test_analyze_chemical_data_anomalous(self):
-        anomalies = self.model.analyze_chemical_data(self.anomalous_chemical)
-        self.assertCountEqual(anomalies, ['ph', 'salinity', 'temperature'])
+    def test_assess_obstacle_risk(self):
+        """Test the obstacle risk assessment logic."""
+        # High risk scenario
+        high_risk = self.clear_model.assess_obstacle_risk(self.high_risk_sonar, self.dense_lidar)
+        self.assertGreater(high_risk, 0.7)
 
-    def test_identify_interesting_locations_fusion(self):
-        # Test case 1: Only image has interesting features
-        findings = self.model.identify_interesting_locations(
-            self.interesting_image, self.sparse_lidar, self.normal_chemical
-        )
-        self.assertEqual(len(findings["image_features"]), 1)
-        self.assertFalse(findings["lidar_object_detected"])
-        self.assertEqual(len(findings["chemical_anomalies"]), 0)
+        # Low risk scenario
+        low_risk = self.clear_model.assess_obstacle_risk(self.low_risk_sonar, self.sparse_lidar)
+        self.assertLess(low_risk, 0.3)
 
-        # Test case 2: Only LIDAR detects an object
-        findings = self.model.identify_interesting_locations(
-            self.normal_image, self.dense_lidar, self.normal_chemical
-        )
-        self.assertEqual(len(findings["image_features"]), 0)
-        self.assertTrue(findings["lidar_object_detected"])
-        self.assertEqual(len(findings["chemical_anomalies"]), 0)
+        # Test risk assessment in fog (LIDAR is less trusted)
+        risk_in_fog = self.fog_model.assess_obstacle_risk(self.low_risk_sonar, self.dense_lidar)
+        risk_in_clear = self.clear_model.assess_obstacle_risk(self.low_risk_sonar, self.dense_lidar)
+        # Since dense_lidar indicates high risk, but is less trusted in fog, the overall risk should be lower in fog.
+        self.assertLess(risk_in_fog, risk_in_clear)
 
-        # Test case 3: Only chemical anomalies are found
-        findings = self.model.identify_interesting_locations(
-            self.normal_image, self.sparse_lidar, self.anomalous_chemical
-        )
-        self.assertEqual(len(findings["image_features"]), 0)
-        self.assertFalse(findings["lidar_object_detected"])
-        self.assertEqual(len(findings["chemical_anomalies"]), 3)
-
-        # Test case 4: All sensors detect something
-        findings = self.model.identify_interesting_locations(
+    def test_identify_interesting_locations(self):
+        """Test the interesting location identification logic."""
+        # Scenario with strong signals from all sensors
+        findings = self.clear_model.identify_interesting_locations(
             self.interesting_image, self.dense_lidar, self.anomalous_chemical
         )
-        self.assertEqual(len(findings["image_features"]), 1)
-        self.assertTrue(findings["lidar_object_detected"])
-        self.assertEqual(len(findings["chemical_anomalies"]), 3)
+        self.assertTrue(findings['is_interesting'])
+        self.assertGreater(findings['fused_confidence'], 0.6)
 
-    def test_input_type_error(self):
-        with self.assertRaises(TypeError):
-            self.model.identify_interesting_locations("not an array", self.dense_lidar, self.normal_chemical)
-        with self.assertRaises(TypeError):
-            self.model.analyze_lidar_data("not an array")
+        # Scenario with weak signals
+        findings = self.clear_model.identify_interesting_locations(
+            self.boring_image, self.sparse_lidar, self.normal_chemical
+        )
+        self.assertFalse(findings['is_interesting'])
+        self.assertLess(findings['fused_confidence'], 0.5)
+
+        # Test fusion in fog (image is less trusted)
+        confidence_in_clear = self.clear_model.identify_interesting_locations(
+            self.interesting_image, self.sparse_lidar, self.normal_chemical
+        )['fused_confidence']
+
+        confidence_in_fog = self.fog_model.identify_interesting_locations(
+            self.interesting_image, self.sparse_lidar, self.normal_chemical
+        )['fused_confidence']
+        # Since the interesting_image is a strong signal, but less trusted in fog, the overall confidence should be lower.
+        self.assertLess(confidence_in_fog, confidence_in_clear)
 
 if __name__ == '__main__':
     unittest.main()

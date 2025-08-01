@@ -5,24 +5,19 @@ class Navigator:
     def __init__(self, grid_size=(100, 100)):
         self.grid_size = grid_size
 
-    def avoid_obstacle(self, sonar_data, lidar_data):
+    def avoid_obstacle(self, obstacle_risk_score, sonar_angle):
         """
-        Enhanced obstacle avoidance logic using both sonar and LIDAR data.
+        Makes a navigation decision based on a fused obstacle risk score from the AI model.
         """
-        sonar_obstacle = sonar_data['distance'] < 20
-
-        # Analyze LIDAR data for a dense object confirmation
-        lidar_obstacle = np.std(lidar_data) < 2.5 # A lower threshold for more sensitive detection
-
-        if sonar_obstacle and lidar_obstacle:
-            # High confidence obstacle, take decisive action
-            if sonar_data['angle'] < 0:
+        if obstacle_risk_score >= 0.7:
+            # High risk: take decisive action
+            if sonar_angle < 0:
                 return "Hard Turn Right"
             else:
                 return "Hard Turn Left"
-        elif sonar_obstacle:
-            # Potential obstacle, suggest a moderate turn
-            if sonar_data['angle'] < 0:
+        elif obstacle_risk_score >= 0.3:
+            # Moderate risk: suggest a turn
+            if sonar_angle < 0:
                 return "Turn Right"
             else:
                 return "Turn Left"
